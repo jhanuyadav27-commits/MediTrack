@@ -57,7 +57,7 @@ Follow these steps to install and run the MediTrack application locally.
 Clone the project repository using Git:
 
 ```bash[
-https://github.com/jhanuyadav27-commits/MediTrack.git
+git clone https://github.com/jhanuyadav27-commits/MediTrack.git
 ```
 
 Navigate to the project directory:
