@@ -53,11 +53,14 @@
 
                     <div class="dropdown-divider"></div>
 
-                    <a href="{{ url_for('logout') }}"
-                        class="profile-dropdown-item logout-link">
-                        <span class="dropdown-icon">↪</span>
-                        <span>Logout</span>
-                    </a>
+                    <form action="{{ url_for('logout') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <button type="submit" class="profile-dropdown-item logout-link">
+        <span class="dropdown-icon">↪</span>
+        <span>Logout</span>
+    </button>
+</form>
                 </div>
             </div>
         {% else %}

@@ -77,11 +77,26 @@
                     </time>
                 </p>
 
-                <button class="print-button"
-                        type="button"
-                        onclick="window.print()">
-                    Print Reports
-                </button>
+                <div class="export-dropdown">
+    <button class="print-button" type="button" id="reportExportBtn">
+        Export Reports ▾
+    </button>
+
+    <div class="export-options" id="reportExportOptions" hidden>
+        <a href="{{ url_for('export_reports', file_format='excel') }}"
+            onclick="console.log('Excel export clicked')">
+            📊 Excel (.xlsx)
+        </a>
+
+        <a href="{{ url_for('export_reports', file_format='word') }}">
+            📝 Word (.docx)
+        </a>
+
+        <button type="button" onclick="window.print()">
+            📄 Print / Save as PDF
+        </button>
+    </div>
+</div>
             </div>
         </section>
 
@@ -220,6 +235,23 @@
         </p>
         <p>Educational project — not intended for clinical decision-making.</p>
     </footer>
+    <script>
+const reportExportBtn = document.getElementById("reportExportBtn");
+const reportExportOptions = document.getElementById("reportExportOptions");
+
+if (reportExportBtn && reportExportOptions) {
+    reportExportBtn.addEventListener("click", function(event) {
+        event.stopPropagation();
+        reportExportOptions.hidden = !reportExportOptions.hidden;
+    });
+
+    document.addEventListener("click", function(event) {
+        if (!event.target.closest(".export-dropdown")) {
+            reportExportOptions.hidden = true;
+        }
+    });
+}
+</script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

@@ -6,6 +6,10 @@ MediTrack is a web-based Hospital Patient Data Analysis System developed using P
 
 The system uses synthetic patient data for analysis and demonstration purposes.
 
+## Live Demo
+
+**Project Link:** https://meditrack-wk50.onrender.com
+
 ## Features
 
 * User registration and login
@@ -25,39 +29,119 @@ The system uses synthetic patient data for analysis and demonstration purposes.
 * **Data Analysis:** Pandas, NumPy
 * **Visualisation:** Matplotlib
 
-## Project Structure
+## 📁Project Structure
 
 * `app.py` – Main Flask application
 * `database.py` – Database connection
+* `export.py` – Handles exporting reports and data into PDF, Excel, and Word formats
 * `database.sql` – Database schema and sample data
 * `analysis/` – Data analysis scripts
 * `templates/` – HTML templates
 * `static/` – CSS and JavaScript files
 * `requirements.txt` – Python dependencies
 
+## Prerequisites
+
+- Python 3.x
+- MySQL Server
+- MySQL Workbench (optional)
+- Visual Studio Code or any code editor
+- A modern web browser
+
 ## Installation and Setup
 
-1. Clone the repository.
+Follow these steps to install and run the MediTrack application locally.
 
-2. Create and activate a Python virtual environment.
+### 1. Clone the Repository
 
-3. Install dependencies:
+Clone the project repository using Git:
 
-   `pip install -r requirements.txt`
+```bash
+git clone https://github.com/Vaishnavi-161/Hospital-patient-data-analysis-system.git
+```
 
-4. Create the MySQL database using `database.sql`.
+Navigate to the project directory:
 
-5. Configure the database connection and environment variables.
+```bash
+cd MediTrack
+```
 
-6. Run the application:
+### 2. Create a Virtual Environment
 
-   `python app.py`
+Create a Python virtual environment:
 
-7. Open the application in your browser using the local address displayed in the terminal.
+```bash
+python -m venv venv
+```
 
-## Team Members
+Activate the virtual environment.
 
-Add the names and roll numbers of all five team members here.
+**For Windows:**
+
+```bash
+venv\Scripts\activate
+```
+
+**For Linux/macOS:**
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+Install the required Python packages using the requirements file:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure the MySQL Database
+
+1. Open MySQL Workbench or your preferred MySQL client.
+2. Create the database by executing the `database.sql` file.
+3. Verify that the database and required tables have been created successfully.
+
+The database used in this project is named `hospital_db`.
+
+### 5. Configure Environment Variables
+
+Create a `.env` file in the root directory of the project.
+
+Add the required database configuration details using the variable names expected by `database.py`.
+
+Make sure to provide your own MySQL credentials and configuration.
+
+**Note:** Do not upload the `.env` file or expose database credentials in the public GitHub repository.
+
+### 6. Run the Application
+
+Start the Flask application using:
+
+```bash
+python app.py
+```
+
+### 7. Access the Application
+
+After successfully starting the application, open your web browser and navigate to the local address displayed in the terminal.
+
+The MediTrack application is now ready to use.
+
+## 👥Team Members
+
+<img width="619" height="363" alt="image" src="https://github.com/user-attachments/assets/3bd25a99-3755-45ea-870d-5e5f0c5f8494" />
+
+## My Contributions
+
+**Ipparla Vaishnavi – JavaScript, Integration & Testing**
+
+- Developed JavaScript functionality for interactive elements.
+- Integrated frontend components with backend functionality.
+- Performed application testing to verify the functionality of different modules.
+- Identified issues, assisted in debugging, and checked whether fixes worked correctly.
+- Contributed to GitHub repository management and overall project coordination.
+- Helped ensure smooth interaction between different modules of the application.
 
 ## Future Scope
 

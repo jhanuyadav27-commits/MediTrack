@@ -1,11 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+import pandas as pd
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
 from flask_wtf.csrf import CSRFProtect
 from database import get_db_connection
-from analysis.data_analysis import main
-from datetime import datetime
+from analysis.data_analysis import main, generate_charts
+from datetime import datetime, date, timedelta
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from flask import current_app
+from export import (
+    generate_export,
+    generate_dashboard_export,
+    generate_demographics_export,
+    generate_reports_export
+)
 app = Flask(__name__)
 
 secret_key = os.environ.get("FLASK_SECRET_KEY")
@@ -78,7 +86,7 @@ def patients():
         cursor = connection.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT patient_id, age_band, gender_optional
+            SELECT patient_id, age_band, gender_optional, blood_group
             FROM patients
             ORDER BY patient_id
         """)
@@ -103,9 +111,13 @@ def patients():
 def add_patient():
     age_band = request.form.get("age_band", "").strip()
     gender = request.form.get("gender_optional", "").strip()
+    blood_group = request.form.get("blood_group", "").strip()
 
     allowed_age_bands = {"0-17", "18-35", "36-59", "60+"}
     allowed_genders = {"", "Female", "Male", "Other"}
+    allowed_blood_groups = {
+        "", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"
+    }
 
     if age_band not in allowed_age_bands:
         flash("Please select a valid age group.", "error")
@@ -115,6 +127,10 @@ def add_patient():
         flash("Please select a valid gender option.", "error")
         return redirect(url_for("patients"))
 
+    if blood_group not in allowed_blood_groups:
+        flash("Please select a valid blood group.", "error")
+        return redirect(url_for("patients"))
+
     connection = None
     cursor = None
 
@@ -122,13 +138,15 @@ def add_patient():
         connection = get_db_connection()
         cursor = connection.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO patients (age_band, gender_optional)
-            VALUES (%s, %s)
-            """,
-            (age_band, gender or None)
-        )
+        cursor.execute("""
+            INSERT INTO patients
+            (age_band, gender_optional, blood_group)
+            VALUES (%s, %s, %s)
+        """, (
+            age_band,
+            gender or None,
+            blood_group or None
+        ))
 
         connection.commit()
         flash("Patient record added successfully!", "success")
@@ -148,6 +166,7 @@ def add_patient():
             connection.close()
 
     return redirect(url_for("patients"))
+
 # Update an existing patient
 @app.route("/edit_patient/<int:patient_id>", methods=["GET", "POST"])
 @login_required
@@ -155,6 +174,9 @@ def edit_patient(patient_id):
 
     allowed_age_bands = {"0-17", "18-35", "36-59", "60+"}
     allowed_genders = {"", "Female", "Male", "Other"}
+    allowed_blood_groups = {
+        "", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"
+    }
 
     connection = None
     cursor = None
@@ -166,20 +188,32 @@ def edit_patient(patient_id):
         if request.method == "POST":
             age_band = request.form.get("age_band", "").strip()
             gender = request.form.get("gender_optional", "").strip()
+            blood_group = request.form.get("blood_group", "").strip()
 
             if age_band not in allowed_age_bands:
                 flash("Please select a valid age group.", "error")
-                return redirect(url_for("edit_patient", patient_id=patient_id))
+                return redirect(url_for("patients"))
 
             if gender not in allowed_genders:
                 flash("Please select a valid gender.", "error")
-                return redirect(url_for("edit_patient", patient_id=patient_id))
+                return redirect(url_for("patients"))
+
+            if blood_group not in allowed_blood_groups:
+                flash("Please select a valid blood group.", "error")
+                return redirect(url_for("patients"))
 
             cursor.execute("""
                 UPDATE patients
-                SET age_band = %s, gender_optional = %s
+                SET age_band = %s,
+                    gender_optional = %s,
+                    blood_group = %s
                 WHERE patient_id = %s
-            """, (age_band, gender or None, patient_id))
+            """, (
+                age_band,
+                gender or None,
+                blood_group or None,
+                patient_id
+            ))
 
             connection.commit()
 
@@ -187,7 +221,7 @@ def edit_patient(patient_id):
             return redirect(url_for("patients"))
 
         cursor.execute("""
-            SELECT patient_id, age_band, gender_optional
+            SELECT patient_id, age_band, gender_optional, blood_group
             FROM patients
             WHERE patient_id = %s
         """, (patient_id,))
@@ -278,6 +312,125 @@ def delete_patient(patient_id):
             connection.close()
 
     return redirect(url_for("patients"))
+@app.route('/export/patients/<file_format>')
+@login_required
+def export_patients(file_format):
+
+    if file_format not in ['excel', 'pdf', 'word']:
+        flash("Invalid export format.", "danger")
+        return redirect(url_for('patients'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT
+                patient_id,
+                age_band,
+                gender_optional,
+                blood_group
+            FROM patients
+            ORDER BY patient_id
+        """)
+
+        data = cursor.fetchall()
+
+        columns = [
+            ('patient_id', 'Patient ID'),
+            ('age_band', 'Age Group'),
+            ('gender_optional', 'Gender'),
+            ('blood_group', 'Blood Group')
+        ]
+
+        buffer, extension = generate_export(
+            data,
+            columns,
+            "Patient Records",
+            file_format
+        )
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"patient_records.{extension}",
+            mimetype={
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'pdf': 'application/pdf',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            }[extension]
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
+@app.route('/export/visits/<file_format>')
+@login_required
+def export_visits(file_format):
+
+    if file_format not in ['excel', 'pdf', 'word']:
+        flash("Invalid export format.", "error")
+        return redirect(url_for('visits'))
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                v.visit_id,
+                v.patient_id,
+                d.department_name,
+                v.visit_date,
+                v.visit_type
+            FROM visits v
+            JOIN departments d
+                ON v.department_id = d.department_id
+            ORDER BY v.visit_date DESC, v.visit_id DESC
+        """)
+
+        data = cursor.fetchall()
+
+        columns = [
+            ('visit_id', 'Visit ID'),
+            ('patient_id', 'Patient ID'),
+            ('department_name', 'Department'),
+            ('visit_date', 'Visit Date'),
+            ('visit_type', 'Visit Type')
+        ]
+
+        buffer, extension = generate_export(
+            data,
+            columns,
+            "Visit Records",
+            file_format
+        )
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"visit_records.{extension}",
+            mimetype={
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'pdf': 'application/pdf',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            }[extension]
+        )
+
+    except Exception:
+        app.logger.exception("Failed to export visit records.")
+        flash("Unable to export visit records.", "error")
+        return redirect(url_for('visits'))
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None and connection.is_connected():
+            connection.close()
 
 # Hospital visits page
 @app.route("/visits")
@@ -557,9 +710,9 @@ def delete_visit(visit_id):
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    main()
     connection = None
     cursor = None
+
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
@@ -573,12 +726,319 @@ def dashboard():
         cursor.execute("SELECT COUNT(*) AS total_departments FROM departments")
         total_departments = cursor.fetchone()["total_departments"]
 
+        cursor.execute("""
+            SELECT department_id, department_name
+            FROM departments
+            ORDER BY department_name
+        """)
+
+        departments = cursor.fetchall()
+
         return render_template(
             "dashboard.html",
             total_patients=total_patients,
             total_visits=total_visits,
-            total_departments=total_departments
+            total_departments=total_departments,
+            departments=departments
         )
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None and connection.is_connected():
+            connection.close()
+
+# API for dynamically updating dashboard charts
+@app.route("/api/dashboard-charts")
+@login_required
+def dashboard_charts():
+
+    period = request.args.get("period", "3m")
+    department_id = request.args.get("department", "all")
+
+    today = date.today()
+
+    # Calculate selected date range
+    if period == "7d":
+        start_date = today - timedelta(days=6)
+        end_date = today
+
+    elif period == "30d":
+        start_date = today - timedelta(days=29)
+        end_date = today
+
+    elif period == "3m":
+        start_date = today - timedelta(days=89)
+        end_date = today
+
+    elif period == "custom":
+        try:
+            start_date = datetime.strptime(
+                request.args.get("start_date", ""),
+                "%Y-%m-%d"
+            ).date()
+
+            end_date = datetime.strptime(
+                request.args.get("end_date", ""),
+                "%Y-%m-%d"
+            ).date()
+
+        except ValueError:
+            return jsonify({"error": "Please select valid dates."}), 400
+
+        if start_date > end_date:
+            return jsonify({"error": "Start date cannot be after end date."}), 400
+
+        if end_date > today:
+            return jsonify({"error": "End date cannot be in the future."}), 400
+
+    else:
+        return jsonify({"error": "Invalid time period selected."}), 400
+
+    if department_id != "all" and not department_id.isdigit():
+        return jsonify({"error": "Invalid department selected."}), 400
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                v.visit_id,
+                v.visit_date,
+                v.visit_type,
+                d.department_name,
+                p.age_band,
+                p.gender_optional
+            FROM visits v
+            JOIN departments d
+                ON v.department_id = d.department_id
+            JOIN patients p
+                ON v.patient_id = p.patient_id
+            WHERE v.visit_date >= %s
+              AND v.visit_date < %s
+        """
+
+        params = [
+            start_date,
+            end_date + timedelta(days=1)
+        ]
+
+        if department_id != "all":
+            query += " AND d.department_id = %s"
+            params.append(int(department_id))
+
+        cursor.execute(query, tuple(params))
+
+        records = cursor.fetchall()
+
+        import pandas as pd
+
+        df = pd.DataFrame(records)
+
+        if not df.empty:
+            df["visit_date"] = pd.to_datetime(df["visit_date"])
+
+        charts = generate_charts(df, start_date, end_date)
+        print("Chart keys:", list(charts.keys()) if charts else charts)
+
+        return jsonify({
+            "charts": charts,
+            "filtered_visits": len(df)
+        })
+
+    except Exception:
+        app.logger.exception("Dashboard chart generation failed.")
+        return jsonify({
+            "error": "Unable to generate dashboard charts."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None and connection.is_connected():
+            connection.close()
+@app.route('/export/dashboard/<file_format>')
+@login_required
+def export_dashboard(file_format):
+
+    if file_format not in ['excel', 'pdf', 'word']:
+        flash("Invalid export format.", "error")
+        return redirect(url_for('dashboard'))
+
+    period = request.args.get("period", "3m")
+    department_id = request.args.get("department", "all")
+    today = date.today()
+
+    # Date filter
+    if period == "7d":
+        start_date = today - timedelta(days=6)
+        end_date = today
+
+    elif period == "30d":
+        start_date = today - timedelta(days=29)
+        end_date = today
+
+    elif period == "3m":
+        start_date = today - timedelta(days=89)
+        end_date = today
+
+    elif period == "custom":
+        try:
+            start_date = datetime.strptime(
+                request.args.get("start_date", ""), "%Y-%m-%d"
+            ).date()
+
+            end_date = datetime.strptime(
+                request.args.get("end_date", ""), "%Y-%m-%d"
+            ).date()
+
+        except ValueError:
+            flash("Please select valid dates.", "error")
+            return redirect(url_for('dashboard'))
+
+        if start_date > end_date or end_date > today:
+            flash("Please select a valid date range.", "error")
+            return redirect(url_for('dashboard'))
+
+    else:
+        flash("Invalid time period selected.", "error")
+        return redirect(url_for('dashboard'))
+
+    if department_id != "all" and not department_id.isdigit():
+        flash("Invalid department selected.", "error")
+        return redirect(url_for('dashboard'))
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # Overall dashboard statistics
+        cursor.execute("SELECT COUNT(*) AS total FROM patients")
+        total_patients = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM visits")
+        total_visits = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM departments")
+        total_departments = cursor.fetchone()["total"]
+
+        # Department name
+        department_name = "All Departments"
+
+        if department_id != "all":
+            cursor.execute(
+                "SELECT department_name FROM departments WHERE department_id = %s",
+                (int(department_id),)
+            )
+
+            department = cursor.fetchone()
+
+            if department is None:
+                flash("Department not found.", "error")
+                return redirect(url_for('dashboard'))
+
+            department_name = department["department_name"]
+
+        # Fetch filtered visit records
+        query = """
+            SELECT
+                v.visit_id,
+                v.patient_id,
+                d.department_name,
+                v.visit_date,
+                v.visit_type,
+                p.age_band,
+                p.gender_optional
+            FROM visits v
+            JOIN departments d ON v.department_id = d.department_id
+            JOIN patients p ON v.patient_id = p.patient_id
+            WHERE v.visit_date >= %s
+              AND v.visit_date < %s
+        """
+
+        params = [start_date, end_date + timedelta(days=1)]
+
+        if department_id != "all":
+            query += " AND d.department_id = %s"
+            params.append(int(department_id))
+
+        query += " ORDER BY v.visit_date DESC, v.visit_id DESC"
+
+        cursor.execute(query, tuple(params))
+        records = cursor.fetchall()
+
+        columns = [
+            "visit_id",
+            "patient_id",
+            "department_name",
+            "visit_date",
+            "visit_type",
+            "age_band",
+            "gender_optional"
+        ]
+
+        df = pd.DataFrame(records, columns=columns)
+
+        if not df.empty:
+            df["visit_date"] = pd.to_datetime(df["visit_date"])
+
+        # Generate charts using the existing analysis function
+        charts = generate_charts(df, start_date, end_date)
+
+        summary = {
+            "Total Patients": total_patients,
+            "Total Visits": total_visits,
+            "Total Departments": total_departments,
+            "Filtered Visits": len(df)
+        }
+
+        filters = {
+            "period": {
+                "7d": "Last 7 Days",
+                "30d": "Last 30 Days",
+                "3m": "Last 3 Months",
+                "custom": "Custom Range"
+            }[period],
+            "department": department_name,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+
+        buffer, extension = generate_dashboard_export(
+            summary,
+            df,
+            charts,
+            "MediTrack Dashboard Report",
+            filters,
+            file_format
+        )
+
+        mimetypes = {
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "pdf": "application/pdf",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"dashboard_report.{extension}",
+            mimetype=mimetypes[extension]
+        )
+
+    except Exception:
+        app.logger.exception("Dashboard export failed.")
+        flash("Unable to export dashboard report.", "error")
+        return redirect(url_for('dashboard'))
 
     finally:
         if cursor is not None:
@@ -603,7 +1063,7 @@ def demographics():
             SELECT age_band, COUNT(*) AS patient_count
             FROM patients
             GROUP BY age_band
-            ORDER BY age_band
+            ORDER BY FIELD(age_band, '0-17', '18-35', '36-59', '60+')
         """)
         age_distribution = cursor.fetchall()
 
@@ -618,6 +1078,21 @@ def demographics():
         """)
         gender_distribution = cursor.fetchall()
 
+        # Patient distribution by blood group
+        cursor.execute("""
+            SELECT
+                COALESCE(NULLIF(blood_group, ''), 'N/A') AS blood_group,
+                COUNT(*) AS patient_count
+            FROM patients
+            GROUP BY blood_group
+            ORDER BY FIELD(
+                blood_group,
+                'A+', 'A-', 'B+', 'B-',
+                'AB+', 'AB-', 'O+', 'O-', 'N/A'
+            )
+        """)
+        blood_group_distribution = cursor.fetchall()
+
         # Total registered patients
         cursor.execute("SELECT COUNT(*) AS total FROM patients")
         total_patients = cursor.fetchone()["total"]
@@ -626,8 +1101,102 @@ def demographics():
             "demographics.html",
             age_distribution=age_distribution,
             gender_distribution=gender_distribution,
+            blood_group_distribution=blood_group_distribution,
             total_patients=total_patients
         )
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None and connection.is_connected():
+            connection.close()
+
+@app.route('/export/demographics/<file_format>')
+@login_required
+def export_demographics(file_format):
+
+    if file_format not in ['excel', 'pdf', 'word']:
+        flash("Invalid export format.", "error")
+        return redirect(url_for('demographics'))
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # Total registered patients
+        cursor.execute("SELECT COUNT(*) AS total FROM patients")
+        total_patients = cursor.fetchone()["total"]
+
+        # Age-group distribution
+        cursor.execute("""
+            SELECT
+                age_band,
+                COUNT(*) AS patient_count
+            FROM patients
+            GROUP BY age_band
+            ORDER BY FIELD(age_band, '0-17', '18-35', '36-59', '60+')
+        """)
+
+        age_distribution = cursor.fetchall()
+
+        # Gender distribution
+        cursor.execute("""
+            SELECT
+                COALESCE(gender_optional, 'Unspecified') AS gender,
+                COUNT(*) AS patient_count
+            FROM patients
+            GROUP BY gender_optional
+            ORDER BY gender
+        """)
+
+        gender_distribution = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                COALESCE(NULLIF(blood_group, ''), 'N/A') AS blood_group,
+                COUNT(*) AS patient_count
+            FROM patients
+            GROUP BY COALESCE(NULLIF(blood_group, ''), 'N/A')
+            ORDER BY MIN(
+                FIELD(
+                    COALESCE(NULLIF(blood_group, ''), 'N/A'),
+                    'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'
+                )
+            );
+        """)
+
+        blood_group_distribution = cursor.fetchall()
+
+        # Generate export
+        buffer, extension = generate_demographics_export(
+            total_patients,
+            age_distribution,
+            gender_distribution,
+            blood_group_distribution,
+            file_format
+        )
+
+        mimetypes = {
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "pdf": "application/pdf",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"patient_demographics.{extension}",
+            mimetype=mimetypes[extension]
+        )
+
+    except Exception:
+        current_app.logger.exception("DEMOGRAPHICS EXPORT ERROR")
+        flash("Unable to export demographics report. Please try again.", "error")
+        return redirect(url_for("demographics"))
 
     finally:
         if cursor is not None:
@@ -701,6 +1270,105 @@ def reports():
             daily_reports=daily_reports,
             now=datetime.now()
         )
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None and connection.is_connected():
+            connection.close()
+
+@app.route('/export/reports/<file_format>')
+@login_required
+def export_reports(file_format):
+
+    if file_format not in ['excel', 'word']:
+        flash("Invalid export format.", "error")
+        return redirect(url_for('reports'))
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # Overall summary
+        cursor.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM patients) AS total_patients,
+                (SELECT COUNT(*) FROM visits) AS total_visits,
+                (SELECT COUNT(*) FROM departments) AS total_departments
+        """)
+        summary = cursor.fetchone()
+
+        # Department-wise reports
+        cursor.execute("""
+            SELECT
+                d.department_name,
+                COUNT(v.visit_id) AS visit_count
+            FROM departments d
+            LEFT JOIN visits v
+                ON d.department_id = v.department_id
+            GROUP BY d.department_id, d.department_name
+            ORDER BY d.department_name
+        """)
+        department_reports = cursor.fetchall()
+
+        # Monthly reports
+        cursor.execute("""
+            SELECT
+                DATE_FORMAT(MIN(visit_date), '%Y-%m') AS month,
+                COUNT(*) AS visit_count
+            FROM visits
+            GROUP BY YEAR(visit_date), MONTH(visit_date)
+            ORDER BY YEAR(visit_date), MONTH(visit_date)
+        """)
+        monthly_reports = cursor.fetchall()
+
+        # Daily reports (latest 14 days with recorded visits)
+        cursor.execute("""
+            SELECT
+                visit_date,
+                COUNT(*) AS visit_count
+            FROM visits
+            GROUP BY visit_date
+            ORDER BY visit_date DESC
+            LIMIT 14
+        """)
+        daily_reports = cursor.fetchall()
+        daily_reports.reverse()
+
+        report_date = datetime.now().strftime('%d %B %Y')
+
+        buffer, extension = generate_reports_export(
+            summary,
+            department_reports,
+            monthly_reports,
+            daily_reports,
+            report_date,
+            file_format
+        )
+        print("EXPORT BUFFER:", type(buffer))
+        print("EXPORT EXTENSION:", extension)
+        print("BUFFER SIZE:", buffer.getbuffer().nbytes)
+
+        mimetypes = {
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"hospital_reports.{extension}",
+            mimetype=mimetypes[extension]
+        )
+
+    except Exception:
+        current_app.logger.exception("REPORTS EXPORT ERROR")
+        flash("Unable to export hospital reports. Please try again.", "error")
+        return redirect(url_for("reports"))
 
     finally:
         if cursor is not None:
@@ -884,6 +1552,7 @@ def profile():
         if connection is not None and connection.is_connected():
             connection.close()
 
+print(app.url_map)
 # Run the application
 if __name__ == "__main__":
     app.run(debug=False)

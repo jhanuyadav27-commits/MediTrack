@@ -22,9 +22,13 @@
             <span>MediTrack</span>
         </a>
 
-        <a href="{{ url_for('logout') }}" class="login-btn">
-            Logout
-        </a>
+        <form action="{{ url_for('logout') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <button type="submit" class="login-btn">
+        Logout
+    </button>
+</form>
 
     </div>
 </header>

@@ -65,13 +65,29 @@
     <main class="container demographics-page">
 
         <section class="demographics-intro">
-            <p class="dashboard-label">PATIENT INSIGHTS</p>
-            <h1>Patient Demographics</h1>
-            <p>
-                Explore the age-group and gender distribution of
-                registered patients.
-            </p>
-        </section>
+    <div>
+        <p class="dashboard-label">PATIENT INSIGHTS</p>
+        <h1>Patient Demographics</h1>
+        <p>
+            Explore the age-group, gender, and blood group distribution of
+            registered patients.
+        </p>
+    </div>
+
+    <div class="patient-heading-actions">
+        <div class="export-dropdown">
+            <button type="button" id="exportBtn" class="export-btn">
+                ↓ Export Records ▾
+            </button>
+
+            <div id="exportOptions" class="export-options" hidden>
+                <a href="{{ url_for('export_demographics', file_format='excel') }}">📊 Excel (.xlsx)</a>
+                <a href="{{ url_for('export_demographics', file_format='pdf') }}">📄 PDF (.pdf)</a>
+                <a href="{{ url_for('export_demographics', file_format='word') }}">📝 Word (.docx)</a>
+            </div>
+        </div>
+    </div>
+</section>
 
         <section class="dashboard-summary"
                  aria-label="Patient demographic statistics">
@@ -92,6 +108,12 @@
                 <span>Gender Categories</span>
                 <h2>{{ gender_distribution|length }}</h2>
                 <p>Including unspecified entries when present</p>
+            </article>
+
+            <article class="summary-card">
+                <span>Blood Group Categories</span>
+                <h2>{{ blood_group_distribution|length }}</h2>
+                <p>Including unspecified entries</p>
             </article>
 
         </section>
@@ -171,6 +193,42 @@
                     <p class="empty-state">No gender data available.</p>
                 {% endif %}
             </article>
+            <article class="demographics-card">
+                <h2>Blood Group Distribution</h2>
+                <p>Number of registered patients in each blood group.</p>
+
+                {% if blood_group_distribution %}
+                <div class="demographics-table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Blood Group</th>
+                                <th scope="col">Patient Count</th>
+                                <th scope="col">Percentage</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in blood_group_distribution %}
+                            <tr>
+                                <td>{{ item.blood_group }}</td>
+                                <td>{{ item.patient_count }}</td>
+                                <td>
+                                    {% if total_patients > 0 %}
+                                        {{ "%.1f"|format(item.patient_count * 100 / total_patients) }}%
+                                    {% else %}
+                                        0.0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="empty-state">No blood group data available.</p>
+                {% endif %}
+            </article>
 
         </section>
 
@@ -187,6 +245,23 @@
             <p>MediTrack · Hospital Data Analysis System</p>
         </div>
     </footer>
+    <script>
+const exportBtn = document.getElementById("exportBtn");
+const exportOptions = document.getElementById("exportOptions");
+
+if (exportBtn && exportOptions) {
+    exportBtn.addEventListener("click", function(event) {
+        event.stopPropagation();
+        exportOptions.hidden = !exportOptions.hidden;
+    });
+
+    document.addEventListener("click", function(event) {
+        if (!event.target.closest(".export-dropdown")) {
+            exportOptions.hidden = true;
+        }
+    });
+}
+</script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

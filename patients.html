@@ -68,15 +68,39 @@
     {% endwith %}
     
     <section class="patients-heading">
-        <div>
-            <h1>Patient Records</h1>
-            <p>View registered patient information.</p>
+    <div>
+        <h1>Patient Records</h1>
+        <p>View registered patient information.</p>
+    </div>
+
+    <div class="patient-heading-actions">
+
+        <div class="export-dropdown">
+            <button type="button" id="exportBtn" class="export-btn">
+                ↓ Export Records ▾
+            </button>
+
+            <div id="exportOptions" class="export-options" hidden>
+                <a href="{{ url_for('export_patients', file_format='excel') }}">
+                    📊 Excel (.xlsx)
+                </a>
+
+                <a href="{{ url_for('export_patients', file_format='pdf') }}">
+                    📄 PDF (.pdf)
+                </a>
+
+                <a href="{{ url_for('export_patients', file_format='word') }}">
+                    📝 Word (.docx)
+                </a>
+            </div>
         </div>
 
         <button type="button" id="addPatientBtn" class="add-patient-btn">
             + Add Patient
         </button>
-    </section>
+
+    </div>
+</section>
 
     <section id="addPatientFormSection"
             class="add-patient-form-section"
@@ -107,6 +131,20 @@
                     <option value="Female">Female</option>
                     <option value="Male">Male</option>
                     <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="blood_group">Blood Group (Optional)</label>
+                <select id="blood_group" name="blood_group">
+                    <option value="">N/A</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
                 </select>
             </div>
 
@@ -153,6 +191,21 @@
                 <option value="Not specified">Not specified</option>
             </select>
         </div>
+        <div class="filter-group">
+            <label for="bloodGroupFilter">Blood Group</label>
+            <select id="bloodGroupFilter">
+                <option value="">All Blood Groups</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="N/A">N/A</option>
+            </select>
+        </div>
 
         <button type="button" id="resetPatientFilters"
                 class="cancel-patient-btn">
@@ -165,7 +218,7 @@
         <input
             type="search"
             id="patientSearch"
-            placeholder="Search by ID, age group, or gender"
+            placeholder="Search by ID, age group, gender or blood group"
 
         >
         <!-- Edit Patient Form -->
@@ -195,6 +248,20 @@
                 <option value="Other">Other</option>
             </select>
         </div>
+        <div class="form-group">
+            <label for="editBloodGroup">Blood Group</label>
+            <select name="blood_group" id="editBloodGroup">
+                <option value="">N/A</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+            </select>
+        </div>
 
         <div class="add-patient-actions">
             <button type="submit" class="add-patient-btn">Save Changes</button>
@@ -212,6 +279,7 @@
                         <th>Patient ID</th>
                         <th>Age Group</th>
                         <th>Gender</th>
+                        <th>Blood Group</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -221,6 +289,7 @@
                         <td>P{{ "%03d"|format(patient.patient_id) }}</td>
                         <td>{{ patient.age_band }}</td>
                         <td>{{ patient.gender_optional or "Not specified" }}</td>
+                        <td>{{ patient.blood_group or "N/A" }}</td>
                         <td>
                             <button type="button" class="edit-btn"
                                     onclick="editPatient(this)">Edit</button>
@@ -236,7 +305,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4">No patient records found.</td>
+                        <td colspan="5">No patient records found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -254,30 +323,38 @@ const searchMessage = document.getElementById("searchMessage");
 
 const ageFilter = document.getElementById("ageFilter");
 const genderFilter = document.getElementById("genderFilter");
+const bloodGroupFilter = document.getElementById("bloodGroupFilter");
 const resetFilters = document.getElementById("resetPatientFilters");
 
 function filterPatients() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     const selectedAge = ageFilter.value;
     const selectedGender = genderFilter.value.toLowerCase();
+    const selectedBloodGroup = bloodGroupFilter.value.toLowerCase();
 
     let visibleCount = 0;
 
     tableRows.forEach(function (row) {
         const cells = row.querySelectorAll("td");
 
-        if (cells.length < 3) return;
+        if (cells.length < 5) return;
 
         const rowText = row.textContent.toLowerCase();
         const rowAge = cells[1].textContent.trim();
         const rowGender = cells[2].textContent.trim().toLowerCase();
+        const rowBloodGroup = cells[3].textContent.trim().toLowerCase();
 
         const matchesSearch = rowText.includes(searchTerm);
         const matchesAge = !selectedAge || rowAge === selectedAge;
         const matchesGender =
             !selectedGender || rowGender === selectedGender;
+        const matchesBloodGroup =
+            !selectedBloodGroup || rowBloodGroup === selectedBloodGroup;
 
-        const matches = matchesSearch && matchesAge && matchesGender;
+        const matches = matchesSearch &&
+                        matchesAge &&
+                        matchesGender &&
+                        matchesBloodGroup;
 
         row.hidden = !matches;
 
@@ -290,11 +367,13 @@ function filterPatients() {
 searchInput.addEventListener("input", filterPatients);
 ageFilter.addEventListener("change", filterPatients);
 genderFilter.addEventListener("change", filterPatients);
+bloodGroupFilter.addEventListener("change", filterPatients);
 
 resetFilters.addEventListener("click", function () {
     searchInput.value = "";
     ageFilter.value = "";
     genderFilter.value = "";
+    bloodGroupFilter.value = "";
 
     filterPatients();
 });
@@ -318,10 +397,15 @@ resetFilters.addEventListener("click", function () {
     const patientId = row.dataset.patientId;
     const ageBand = row.cells[1].textContent.trim();
     const gender = row.cells[2].textContent.trim();
+    const bloodGroup = row.cells[3].textContent.trim();
 
     document.getElementById("editAgeBand").value = ageBand;
+
     document.getElementById("editGender").value =
         gender === "Not specified" ? "" : gender;
+
+    document.getElementById("editBloodGroup").value =
+        bloodGroup === "N/A" ? "" : bloodGroup;
 
     document.getElementById("editPatientForm").action =
         `/edit_patient/${patientId}`;
@@ -336,6 +420,21 @@ resetFilters.addEventListener("click", function () {
 function closeEditForm() {
     document.getElementById("editPatientSection").style.display = "none";
 }
+// Export dropdown
+const exportBtn = document.getElementById("exportBtn");
+const exportOptions = document.getElementById("exportOptions");
+
+exportBtn.addEventListener("click", function (event) {
+    event.stopPropagation();
+
+    exportOptions.hidden = !exportOptions.hidden;
+});
+
+document.addEventListener("click", function (event) {
+    if (!event.target.closest(".export-dropdown")) {
+        exportOptions.hidden = true;
+    }
+});
 </script>
     <footer class="site-footer">
         <div class="container">

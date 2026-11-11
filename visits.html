@@ -72,10 +72,36 @@
         {% endwith %}
 
         <section class="visits-heading">
-            <p class="dashboard-label">HOSPITAL ACTIVITY</p>
-            <h1>Visit Records</h1>
-            <p>View and search recorded hospital visits by patient, department, date, or visit type.</p>
-        </section>
+    <div>
+        <p class="dashboard-label">HOSPITAL ACTIVITY</p>
+        <h1>Visit Records</h1>
+        <p>View and search recorded hospital visits by patient, department, date, or visit type.</p>
+    </div>
+
+    <div class="patient-heading-actions">
+
+        <div class="export-dropdown">
+            <button type="button" id="exportBtn" class="export-btn">
+                ↓ Export Records ▾
+            </button>
+
+            <div id="exportOptions" class="export-options" hidden>
+                <a href="{{ url_for('export_visits', file_format='excel') }}">
+                    📊 Excel (.xlsx)
+                </a>
+
+                <a href="{{ url_for('export_visits', file_format='pdf') }}">
+                    📄 PDF (.pdf)
+                </a>
+
+                <a href="{{ url_for('export_visits', file_format='word') }}">
+                    📝 Word (.docx)
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
 
         <section class="dashboard-summary" aria-label="Visit statistics">
             <article class="summary-card">
@@ -475,6 +501,20 @@ addVisitForm.addEventListener("submit", function(event) {
         if (!proceed) {
             event.preventDefault();
         }
+    }
+});
+// Export dropdown
+const exportBtn = document.getElementById("exportBtn");
+const exportOptions = document.getElementById("exportOptions");
+
+exportBtn.addEventListener("click", function(event) {
+    event.stopPropagation();
+    exportOptions.hidden = !exportOptions.hidden;
+});
+
+document.addEventListener("click", function(event) {
+    if (!event.target.closest(".export-dropdown")) {
+        exportOptions.hidden = true;
     }
 });
     </script>

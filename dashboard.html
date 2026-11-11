@@ -52,16 +52,37 @@
     </aside>
 
     <main class="container dashboard-page">
-        <section class="dashboard-heading">
-            <p class="dashboard-label">MEDICAL DATA INSIGHTS</p>
-            <h1>Analytics Dashboard</h1>
-            <p>
-                Explore hospital visit patterns, department workloads,
-                patient age groups, and visit trends.
-            </p>
-        </section>
 
-        
+        <section class="dashboard-heading">
+
+    <div>
+        <p class="dashboard-label">MEDICAL DATA INSIGHTS</p>
+        <h1>Analytics Dashboard</h1>
+        <p>
+            Explore hospital visit patterns, department workloads,
+            patient age groups, and visit trends.
+        </p>
+    </div>
+
+    <div class="patient-heading-actions">
+
+        <div class="export-dropdown">
+            <button type="button" id="exportBtn" class="export-btn">
+                ↓ Export Records ▾
+            </button>
+
+            <div id="exportOptions" class="export-options" hidden>
+                <a href="#" data-format="excel">📊 Excel (.xlsx)</a>
+                <a href="#" data-format="pdf">📄 PDF (.pdf)</a>
+                <a href="#" data-format="word">📝 Word (.docx)</a>
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+        <!-- Overall statistics -->
         <section class="dashboard-summary" aria-label="Hospital statistics">
 
             <article class="summary-card">
@@ -84,52 +105,125 @@
 
         </section>
 
+        <!-- Dashboard filters -->
+        <section class="dashboard-filters">
 
+            <h2>Filter Analytics</h2>
 
+            <div class="filter-controls">
+
+                <div class="filter-group">
+                    <label for="periodFilter">Time Period</label>
+
+                    <select id="periodFilter">
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                        <option value="3m" selected>Last 3 Months</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="departmentFilter">Department</label>
+
+                    <select id="departmentFilter">
+                        <option value="all">All Departments</option>
+
+                        {% for department in departments %}
+                        <option value="{{ department.department_id }}">
+                            {{ department.department_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- Custom date range -->
+            <div class="custom-date-range" id="customDateRange" hidden>
+
+                <div class="filter-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+
+                <div class="filter-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+
+            </div>
+
+            <div class="filter-buttons">
+                <button type="button" id="applyFilters">
+                    Apply Filters
+                </button>
+
+                <button type="button" id="resetFilters">
+                    Reset
+                </button>
+            </div>
+
+            <p id="filterStatus" role="status" aria-live="polite"></p>
+
+        </section>
+
+        <!-- Analytics charts -->
         <section class="chart-grid" aria-label="Hospital analytics charts">
 
             <article class="chart-card">
                 <h2>Department-wise Visits</h2>
                 <p>Compare the number of visits across departments.</p>
-                <img src="{{ url_for('static', filename='images/department_wise_visits.png') }}"
+
+                <img id="departmentChart"
+                     src="{{ url_for('static', filename='images/department_wise_visits.png') }}"
                      alt="Bar chart showing hospital visits by department">
             </article>
 
             <article class="chart-card">
                 <h2>Monthly Visit Trends</h2>
                 <p>Explore how visit volume changes month by month.</p>
-                <img src="{{ url_for('static', filename='images/monthly_visit_trends.png') }}"
+
+                <img id="monthlyChart"
+                     src="{{ url_for('static', filename='images/monthly_visit_trends.png') }}"
                      alt="Line chart showing monthly hospital visits">
             </article>
 
             <article class="chart-card">
                 <h2>Patient Age-Band Distribution</h2>
                 <p>View visit counts across different age groups.</p>
-                <img src="{{ url_for('static', filename='images/patient_age_band_distribution.png') }}"
+
+                <img id="ageChart"
+                     src="{{ url_for('static', filename='images/patient_age_band_distribution.png') }}"
                      alt="Bar chart showing visits by patient age band">
             </article>
 
             <article class="chart-card">
                 <h2>Visit-Type Distribution</h2>
                 <p>Compare consultation, follow-up, and other visit types.</p>
-                <img src="{{ url_for('static', filename='images/visit_type_distribution.png') }}"
+
+                <img id="visitTypeChart"
+                     src="{{ url_for('static', filename='images/visit_type_distribution.png') }}"
                      alt="Bar chart showing the distribution of visit types">
             </article>
 
             <article class="chart-card chart-card-wide">
                 <h2>Daily Visit Trends</h2>
                 <p>Examine recorded visit counts across individual dates.</p>
-                <img src="{{ url_for('static', filename='images/daily_visit_trends.png') }}"
+
+                <img id="dailyChart"
+                     src="{{ url_for('static', filename='images/daily_visit_trends.png') }}"
                      alt="Line chart showing daily hospital visits">
             </article>
 
         </section>
 
         <p class="data-note">
-            Note: This dashboard displays analysis generated from the current
-            synthetic hospital dataset. The charts are snapshots and must be
-            regenerated when the underlying data changes.
+            Note: Charts update according to the selected time period
+            and department. The summary cards display overall hospital
+            statistics.
         </p>
+
     </main>
 
     <footer class="site-footer">
@@ -137,8 +231,57 @@
             <p>MediTrack · Hospital Data Analysis System</p>
         </div>
     </footer>
+    <script>
+const exportBtn = document.getElementById("exportBtn");
+const exportOptions = document.getElementById("exportOptions");
+
+exportBtn.addEventListener("click", function(event) {
+    event.stopPropagation();
+    exportOptions.hidden = !exportOptions.hidden;
+});
+
+document.addEventListener("click", function(event) {
+    if (!event.target.closest(".export-dropdown")) {
+        exportOptions.hidden = true;
+    }
+});
+document.querySelectorAll("#exportOptions a[data-format]").forEach(link => {
+
+    link.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        const period = document.getElementById("periodFilter").value;
+        const department = document.getElementById("departmentFilter").value;
+
+        const params = new URLSearchParams({
+            period: period,
+            department: department
+        });
+
+        if (period === "custom") {
+            const startDate = document.getElementById("startDate").value;
+            const endDate = document.getElementById("endDate").value;
+
+            if (!startDate || !endDate) {
+                alert("Please select both start and end dates.");
+                return;
+            }
+
+            params.set("start_date", startDate);
+            params.set("end_date", endDate);
+        }
+
+        window.location.href =
+            `/export/dashboard/${this.dataset.format}?${params.toString()}`;
+
+        exportOptions.hidden = true;
+    });
+
+});
+</script>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 </body>
 </html>
 
