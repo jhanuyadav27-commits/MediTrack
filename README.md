@@ -134,14 +134,16 @@ The MediTrack application is now ready to use.
 
 ## My Contributions
 
-**Ipparla Vaishnavi – JavaScript, Integration & Testing**
+**Golla Krishna Jhansi – Backend Development**
 
-- Developed JavaScript functionality for interactive elements.
-- Integrated frontend components with backend functionality.
-- Performed application testing to verify the functionality of different modules.
-- Identified issues, assisted in debugging, and checked whether fixes worked correctly.
-- Contributed to GitHub repository management and overall project coordination.
-- Helped ensure smooth interaction between different modules of the application.
+- Developed backend functionality for the Meditrack application.
+- Implemented server-side logic to handle user requests and application operations.
+- Created and managed backend APIs to connect frontend components with the server.
+- Worked on database connectivity and data handling.
+- Implemented data storage, retrieval, and updating operations.
+- Handled backend errors and performed debugging to improve application functionality.
+- Ensured smooth communication between the frontend, backend, and database.
+- Collaborated with team members to integrate backend modules into the application.
 
 ## Future Scope
 
