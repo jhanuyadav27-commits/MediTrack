@@ -136,14 +136,11 @@ The MediTrack application is now ready to use.
 
 **Golla Krishna Jhansi – Backend Development**
 
-- Developed backend functionality for the Meditrack application.
-- Implemented server-side logic to handle user requests and application operations.
-- Created and managed backend APIs to connect frontend components with the server.
-- Worked on database connectivity and data handling.
-- Implemented data storage, retrieval, and updating operations.
-- Handled backend errors and performed debugging to improve application functionality.
-- Ensured smooth communication between the frontend, backend, and database.
-- Collaborated with team members to integrate backend modules into the application.
+- Developed the Flask backend for the application.
+- Implemented application routes and request handling.
+- Integrated backend functionality with frontend templates.
+- Worked on user authentication and session management.
+- Assisted in debugging and improving application functionality.
 
 ## Future Scope
 
