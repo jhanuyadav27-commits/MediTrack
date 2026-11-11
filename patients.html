@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patients | MediTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="site-header">
+    <div class="container navbar">
+        <div class="navbar-left">
+            <button class="menu-btn" id="menuBtn" type="button"
+                    aria-label="Open navigation menu" aria-expanded="false">
+                ☰
+            </button>
+
+
+        <a href="{{ url_for('home') }}" class="brand">
+            <span class="brand-icon">✚</span>
+            <span>MediTrack</span>
+        </a>
+    </div>
+
+    {% if not session.get('logged_in') %}
+    <a href="{{ url_for('login') }}" class="login-btn">
+        <span>👤</span>
+        <span>Login</span>
+    </a>
+    {% endif %}
+</div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-heading">
+        <h2>Navigation</h2>
+        <button class="close-btn" id="closeBtn" type="button"
+                aria-label="Close navigation menu">&times;</button>
+    </div>
+
+
+<nav class="sidebar-nav">
+    <a href="{{ url_for('home') }}" class="nav-link">⌂ Home</a>
+    <a href="{{ url_for('patients') }}" class="nav-link active">♙ Patients</a>
+    <a href="{{ url_for('visits') }}" class="nav-link">▤ Visits</a>
+    <a href="{{ url_for('dashboard') }}" class="nav-link">▥ Dashboard</a>
+    <a href="{{ url_for('demographics') }}" class="nav-link">◉ Demographics</a>
+    <a href="{{ url_for('reports') }}" class="nav-link">▧ Reports</a>
+</nav>
+
+<div class="sidebar-footer">Hospital Data Analysis System</div>
+
+
+</aside>
+
+
+<main class="container patients-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="patient-flash-message {{ category }}" role="status">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endwith %}
+    
+    <section class="patients-heading">
+        <div>
+            <h1>Patient Records</h1>
+            <p>View registered patient information.</p>
+        </div>
+
+        <button type="button" id="addPatientBtn" class="add-patient-btn">
+            + Add Patient
+        </button>
+    </section>
+
+    <section id="addPatientFormSection"
+            class="add-patient-form-section"
+            hidden>
+
+        <h2>Add New Patient</h2>
+
+        <form action="{{ url_for('add_patient') }}"
+            method="POST"
+            class="add-patient-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="age_band">Age Group</label>
+                <select id="age_band" name="age_band" required>
+                    <option value="">Select age group</option>
+                    <option value="0-17">0–17</option>
+                    <option value="18-35">18–35</option>
+                    <option value="36-59">36–59</option>
+                    <option value="60+">60+</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="gender_optional">Gender (Optional)</label>
+                <select id="gender_optional" name="gender_optional">
+                    <option value="">Not specified</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="add-patient-actions">
+                <button type="submit" class="add-patient-btn">
+                    Save Patient
+                </button>
+
+                <button type="button"
+                        id="cancelAddPatient"
+                        class="cancel-patient-btn">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </section>
+
+
+
+    <section class="patients-search-section">
+
+    <h2 class="filter-heading">Search & Filter Records</h2>
+
+    <div class="patient-filters">
+
+        <div class="filter-group">
+            <label for="ageFilter">Age Group</label>
+            <select id="ageFilter">
+                <option value="">All Age Groups</option>
+                <option value="0-17">0–17</option>
+                <option value="18-35">18–35</option>
+                <option value="36-59">36–59</option>
+                <option value="60+">60+</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="genderFilter">Gender</label>
+            <select id="genderFilter">
+                <option value="">All Genders</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+                <option value="Not specified">Not specified</option>
+            </select>
+        </div>
+
+        <button type="button" id="resetPatientFilters"
+                class="cancel-patient-btn">
+            Reset Filters
+        </button>
+
+    </div>
+
+    <label for="patientSearch">Search patient records</label>
+        <input
+            type="search"
+            id="patientSearch"
+            placeholder="Search by ID, age group, or gender"
+
+        >
+        <!-- Edit Patient Form -->
+<div id="editPatientSection" class="add-patient-form-section" style="display: none;">
+
+    <h3>Edit Patient Record</h3>
+
+    <form id="editPatientForm" method="POST" class="add-patient-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label>Age Group</label>
+            <select name="age_band" id="editAgeBand" required>
+                <option value="0-17">0–17</option>
+                <option value="18-35">18–35</option>
+                <option value="36-59">36–59</option>
+                <option value="60+">60+</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Gender</label>
+            <select name="gender_optional" id="editGender">
+                <option value="">Not specified</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div class="add-patient-actions">
+            <button type="submit" class="add-patient-btn">Save Changes</button>
+            <button type="button" class="cancel-patient-btn"
+                    onclick="closeEditForm()">Cancel</button>
+        </div>
+
+    </form>
+</div>
+
+        <div class="patients-table-wrapper">
+            <table id="patientsTable">
+                <thead>
+                    <tr>
+                        <th>Patient ID</th>
+                        <th>Age Group</th>
+                        <th>Gender</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in patients %}
+                    <tr data-patient-id="{{ patient.patient_id }}">
+                        <td>P{{ "%03d"|format(patient.patient_id) }}</td>
+                        <td>{{ patient.age_band }}</td>
+                        <td>{{ patient.gender_optional or "Not specified" }}</td>
+                        <td>
+                            <button type="button" class="edit-btn"
+                                    onclick="editPatient(this)">Edit</button>
+
+                            <form action="{{ url_for('delete_patient', patient_id=patient.patient_id) }}"
+                                method="POST"
+                                style="display:inline;"
+                                onsubmit="return confirm('Are you sure you want to delete this patient?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">No patient records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p id="searchMessage" aria-live="polite"></p>
+    </section>
+</main>
+
+<script>
+    const searchInput = document.getElementById("patientSearch");
+const tableRows = document.querySelectorAll("#patientsTable tbody tr");
+const searchMessage = document.getElementById("searchMessage");
+
+const ageFilter = document.getElementById("ageFilter");
+const genderFilter = document.getElementById("genderFilter");
+const resetFilters = document.getElementById("resetPatientFilters");
+
+function filterPatients() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const selectedAge = ageFilter.value;
+    const selectedGender = genderFilter.value.toLowerCase();
+
+    let visibleCount = 0;
+
+    tableRows.forEach(function (row) {
+        const cells = row.querySelectorAll("td");
+
+        if (cells.length < 3) return;
+
+        const rowText = row.textContent.toLowerCase();
+        const rowAge = cells[1].textContent.trim();
+        const rowGender = cells[2].textContent.trim().toLowerCase();
+
+        const matchesSearch = rowText.includes(searchTerm);
+        const matchesAge = !selectedAge || rowAge === selectedAge;
+        const matchesGender =
+            !selectedGender || rowGender === selectedGender;
+
+        const matches = matchesSearch && matchesAge && matchesGender;
+
+        row.hidden = !matches;
+
+        if (matches) visibleCount++;
+    });
+
+    searchMessage.textContent = visibleCount + " matching patient(s).";
+}
+
+searchInput.addEventListener("input", filterPatients);
+ageFilter.addEventListener("change", filterPatients);
+genderFilter.addEventListener("change", filterPatients);
+
+resetFilters.addEventListener("click", function () {
+    searchInput.value = "";
+    ageFilter.value = "";
+    genderFilter.value = "";
+
+    filterPatients();
+});
+    const addPatientBtn = document.getElementById("addPatientBtn");
+    const formSection = document.getElementById("addPatientFormSection");
+    const cancelBtn = document.getElementById("cancelAddPatient");
+
+    addPatientBtn.addEventListener("click", function () {
+        formSection.hidden = false;
+        addPatientBtn.hidden = true;
+        document.getElementById("age_band").focus();
+    });
+
+    cancelBtn.addEventListener("click", function () {
+        formSection.hidden = true;
+        addPatientBtn.hidden = false;
+    });
+    function editPatient(button) {
+    const row = button.closest("tr");
+
+    const patientId = row.dataset.patientId;
+    const ageBand = row.cells[1].textContent.trim();
+    const gender = row.cells[2].textContent.trim();
+
+    document.getElementById("editAgeBand").value = ageBand;
+    document.getElementById("editGender").value =
+        gender === "Not specified" ? "" : gender;
+
+    document.getElementById("editPatientForm").action =
+        `/edit_patient/${patientId}`;
+
+    document.getElementById("editPatientSection").style.display = "block";
+
+    document.getElementById("editPatientSection").scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+function closeEditForm() {
+    document.getElementById("editPatientSection").style.display = "none";
+}
+</script>
+    <footer class="site-footer">
+        <div class="container">
+            <p>MediTrack · Hospital Data Analysis System</p>
+        </div>
+    </footer>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

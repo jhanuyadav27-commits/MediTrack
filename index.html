@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MediTrack Hospital Data Analysis System for analyzing hospital visits, departments, and patient demographics.">
+
+<title>MediTrack | Hospital Data Analysis System</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+
+</head>
+
+<body>
+
+<!-- Header -->
+<header class="site-header">
+    <div class="container navbar">
+
+        <div class="navbar-left">
+            <button class="menu-btn"
+                    id="menuBtn"
+                    type="button"
+                    aria-label="Open navigation menu"
+                    aria-expanded="false">
+                ☰
+            </button>
+
+            <a href="{{ url_for('home') }}" class="brand">
+                <span class="brand-icon">✚</span>
+                <span>MediTrack</span>
+            </a>
+        </div>       
+        
+        
+        {% if session.get('logged_in') %}
+            <div class="profile-menu">
+                <button type="button"
+                        class="profile-btn"
+                        id="profileBtn"
+                        aria-label="Open profile menu"
+                        aria-expanded="false">
+                    <span class="profile-icon">👤</span>
+                </button>
+
+                <div class="profile-dropdown" id="profileDropdown" hidden>
+                    <a href="{{ url_for('profile') }}" class="profile-dropdown-item">
+                        <span class="dropdown-icon">♙</span>
+                        <span>My Profile</span>
+                    </a>
+
+                    <div class="dropdown-divider"></div>
+
+                    <a href="{{ url_for('logout') }}"
+                        class="profile-dropdown-item logout-link">
+                        <span class="dropdown-icon">↪</span>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="login-btn">
+                <span class="login-icon">👤</span>
+                <span>Login</span>
+            </a>
+        {% endif %}
+
+    </div>
+</header>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-heading">
+        <h2>Navigation</h2>
+
+        <button class="close-btn"
+                id="closeBtn"
+                type="button"
+                aria-label="Close navigation menu">
+            &times;
+        </button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('home') }}" class="nav-link active">⌂ Home</a>
+        <a href="{{ url_for('patients') }}" class="nav-link">♙ Patients</a>
+        <a href="{{ url_for('visits') }}" class="nav-link">▤ Visits</a>
+        <a href="{{ url_for('dashboard') }}" class="nav-link">▥ Dashboard</a>
+        <a href="{{ url_for('demographics') }}" class="nav-link">◉ Demographics</a>
+        <a href="{{ url_for('reports') }}" class="nav-link">▧ Reports</a>
+    </nav>
+
+    <div class="sidebar-footer">
+        Hospital Data Analysis System
+    </div>
+
+</aside>
+
+<main>
+
+    <!-- Welcome Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <span class="eyebrow">HOSPITAL DATA ANALYTICS</span>
+
+                <h1>Understand Hospital Visits.<br>
+                    <span>Make Better Decisions.</span>
+                </h1>
+
+                <p>
+                    Explore hospital visit trends, understand department
+                    workloads, and analyze patient demographics through
+                    clear, data-driven insights.
+                </p>
+
+                <p class="data-note">
+                    <span class="status-dot"></span>
+                    Demonstration project using synthetic data
+                </p>
+            </div>
+
+            <div class="hero-visual" aria-hidden="true">
+                <div class="visual-card">
+                    <div class="visual-heading">
+                        <div class="visual-icon">✚</div>
+                        <h2>Healthcare Insights</h2>
+                    </div>
+                    <p>Organized data. Meaningful analysis.</p>
+
+                    <div class="visual-divider"></div>
+
+                    <div class="visual-stat">
+                        <span class="visual-stat-icon">↗</span>
+                        <div>
+                            <strong>Visit Analytics</strong>
+                            <small>Daily and monthly trends</small>
+                        </div>
+                    </div>
+
+                    <div class="visual-stat">
+                        <span class="visual-stat-icon">▦</span>
+                        <div>
+                            <strong>Department Insights</strong>
+                            <small>Workload distribution</small>
+                        </div>
+                    </div>
+
+                    <div class="visual-stat">
+                        <span class="visual-stat-icon">◉</span>
+                        <div>
+                            <strong>Patient Demographics</strong>
+                            <small>Aggregated age-band analysis</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section class="overview-section">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">AT A GLANCE</span>
+                    <h2>Hospital Overview</h2>
+                    <p>A quick look at the records in our demonstration dataset.</p>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+
+                <article class="stat-card">
+                    <div class="stat-icon patients-icon">♙</div>
+                    <p class="stat-label">Total Patients</p>
+                    <h3>{{ total_patients }}</h3>
+                    <span class="stat-description">Synthetic patient records</span>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-icon visits-icon">▤</div>
+                    <p class="stat-label">Total Visits</p>
+                    <h3>{{ total_visits }}</h3>
+                    <span class="stat-description">Recorded demonstration visits</span>
+                </article>
+
+                <article class="stat-card">
+                    <div class="stat-icon departments-icon">✚</div>
+                    <p class="stat-label">Departments</p>
+                    <h3>{{ total_departments }}</h3>
+                    <span class="stat-description">Across the sample dataset</span>
+                </article>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">EXPLORE THE SYSTEM</span>
+                    <h2>Everything in One Place</h2>
+                    <p>A quick overview of the key modules available in the system.</p>
+                </div>
+            </div>
+
+            <div class="features-grid">
+
+                <div class="feature-card">
+                    <div class="feature-icon">♙</div>
+                    <h3>Patient Records</h3>
+                    <p>Explore synthetic patient records and aggregated age groups.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">▤</div>
+                    <h3>Visit Records</h3>
+                    <p>Review visit dates, departments, and types of visits.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">▥</div>
+                    <h3>Analytics Dashboard</h3>
+                    <p>Discover daily and monthly trends and department workloads.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">◉</div>
+                    <h3>Demographics</h3>
+                    <p>Understand the distribution of patients across age bands.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">▧</div>
+                    <h3>Reports & Charts</h3>
+                    <p>Explore visual summaries and data analysis results.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="container footer-content">
+        <a href="{{ url_for('home') }}" class="brand footer-brand">
+            <span class="brand-icon">✚</span>
+            <span>MediTrack</span>
+        </a>
+
+        <p>Hospital Data Analysis System · Academic Project</p>
+
+        <p class="footer-note">
+            All patient and visit records are synthetic and intended for demonstration.
+        </p>
+    </div>
+</footer>
+
+
+</body>
+</html>

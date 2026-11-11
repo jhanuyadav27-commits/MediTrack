@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard | MediTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="container navbar">
+            <div class="navbar-left">
+                <button class="menu-btn" id="menuBtn" type="button"
+                        aria-label="Open navigation menu" aria-expanded="false">
+                    ☰
+                </button>
+                <a href="{{ url_for('home') }}" class="brand">
+                    <span class="brand-icon">✚</span>
+                    <span>MediTrack</span>
+                </a>
+            </div>
+
+            {% if not session.get('logged_in') %}
+            <a href="{{ url_for('login') }}" class="login-btn">
+                <span>👤</span>
+                <span>Login</span>
+            </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-heading">
+            <h2>Navigation</h2>
+            <button class="close-btn" id="closeBtn" type="button"
+                    aria-label="Close navigation menu">&times;</button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('home') }}" class="nav-link">⌂ Home</a>
+            <a href="{{ url_for('patients') }}" class="nav-link">♙ Patients</a>
+            <a href="{{ url_for('visits') }}" class="nav-link">▤ Visits</a>
+            <a href="{{ url_for('dashboard') }}" class="nav-link active">▥ Dashboard</a>
+            <a href="{{ url_for('demographics') }}" class="nav-link">◉ Demographics</a>
+            <a href="{{ url_for('reports') }}" class="nav-link">▧ Reports</a>
+        </nav>
+
+        <div class="sidebar-footer">Hospital Data Analysis System</div>
+    </aside>
+
+    <main class="container dashboard-page">
+        <section class="dashboard-heading">
+            <p class="dashboard-label">MEDICAL DATA INSIGHTS</p>
+            <h1>Analytics Dashboard</h1>
+            <p>
+                Explore hospital visit patterns, department workloads,
+                patient age groups, and visit trends.
+            </p>
+        </section>
+
+        
+        <section class="dashboard-summary" aria-label="Hospital statistics">
+
+            <article class="summary-card">
+                <span>Total Patients</span>
+                <h2>{{ total_patients }}</h2>
+                <p>Registered patients</p>
+            </article>
+
+            <article class="summary-card">
+                <span>Total Visits</span>
+                <h2>{{ total_visits }}</h2>
+                <p>Recorded visits</p>
+            </article>
+
+            <article class="summary-card">
+                <span>Departments</span>
+                <h2>{{ total_departments }}</h2>
+                <p>Registered departments</p>
+            </article>
+
+        </section>
+
+
+
+        <section class="chart-grid" aria-label="Hospital analytics charts">
+
+            <article class="chart-card">
+                <h2>Department-wise Visits</h2>
+                <p>Compare the number of visits across departments.</p>
+                <img src="{{ url_for('static', filename='images/department_wise_visits.png') }}"
+                     alt="Bar chart showing hospital visits by department">
+            </article>
+
+            <article class="chart-card">
+                <h2>Monthly Visit Trends</h2>
+                <p>Explore how visit volume changes month by month.</p>
+                <img src="{{ url_for('static', filename='images/monthly_visit_trends.png') }}"
+                     alt="Line chart showing monthly hospital visits">
+            </article>
+
+            <article class="chart-card">
+                <h2>Patient Age-Band Distribution</h2>
+                <p>View visit counts across different age groups.</p>
+                <img src="{{ url_for('static', filename='images/patient_age_band_distribution.png') }}"
+                     alt="Bar chart showing visits by patient age band">
+            </article>
+
+            <article class="chart-card">
+                <h2>Visit-Type Distribution</h2>
+                <p>Compare consultation, follow-up, and other visit types.</p>
+                <img src="{{ url_for('static', filename='images/visit_type_distribution.png') }}"
+                     alt="Bar chart showing the distribution of visit types">
+            </article>
+
+            <article class="chart-card chart-card-wide">
+                <h2>Daily Visit Trends</h2>
+                <p>Examine recorded visit counts across individual dates.</p>
+                <img src="{{ url_for('static', filename='images/daily_visit_trends.png') }}"
+                     alt="Line chart showing daily hospital visits">
+            </article>
+
+        </section>
+
+        <p class="data-note">
+            Note: This dashboard displays analysis generated from the current
+            synthetic hospital dataset. The charts are snapshots and must be
+            regenerated when the underlying data changes.
+        </p>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>MediTrack · Hospital Data Analysis System</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visit Records | MediTrack</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <header class="site-header">
+    <div class="container navbar">
+        <div class="navbar-left">
+            <button class="menu-btn" id="menuBtn" type="button"
+                    aria-label="Open navigation menu" aria-expanded="false">
+                ☰
+            </button>
+
+
+        <a href="{{ url_for('home') }}" class="brand">
+            <span class="brand-icon">✚</span>
+            <span>MediTrack</span>
+        </a>
+    </div>
+
+    {% if not session.get('logged_in') %}
+    <a href="{{ url_for('login') }}" class="login-btn">
+        <span>👤</span>
+        <span>Login</span>
+    </a>
+    {% endif %}
+</div>
+
+
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-heading">
+        <h2>Navigation</h2>
+        <button class="close-btn" id="closeBtn" type="button"
+                aria-label="Close navigation menu">&times;</button>
+    </div>
+
+
+<nav class="sidebar-nav">
+    <a href="{{ url_for('home') }}" class="nav-link">⌂ Home</a>
+    <a href="{{ url_for('patients') }}" class="nav-link">♙ Patients</a>
+    <a href="{{ url_for('visits') }}" class="nav-link active">▤ Visits</a>
+    <a href="{{ url_for('dashboard') }}" class="nav-link">▥ Dashboard</a>
+    <a href="{{ url_for('demographics') }}" class="nav-link">◉ Demographics</a>
+    <a href="{{ url_for('reports') }}" class="nav-link">▧ Reports</a>
+</nav>
+
+<div class="sidebar-footer">Hospital Data Analysis System</div>
+
+
+</aside>
+
+
+    <main class="container visits-page">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="patient-flash-message {{ category }}" role="status">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="visits-heading">
+            <p class="dashboard-label">HOSPITAL ACTIVITY</p>
+            <h1>Visit Records</h1>
+            <p>View and search recorded hospital visits by patient, department, date, or visit type.</p>
+        </section>
+
+        <section class="dashboard-summary" aria-label="Visit statistics">
+            <article class="summary-card">
+                <span>Total Visits</span>
+                <h2>{{ visits|length }}</h2>
+                <p>Recorded hospital visits</p>
+            </article>
+        </section>
+        <section class="add-visit-heading">
+            <button type="button" id="addVisitBtn" class="add-patient-btn">
+                + Add Visit
+            </button>
+        </section>
+
+        <section id="addVisitFormSection"
+                class="add-patient-form-section"
+                hidden>
+
+            <h2>Add New Visit</h2>
+
+            <form action="{{ url_for('add_visit') }}"
+                method="POST"
+                class="add-patient-form"
+                id="addVisitForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-group">
+                    <label for="patient_id">Patient ID</label>
+                    <select id="patient_id" name="patient_id" required>
+                        <option value="">Select patient</option>
+                        {% for patient in patients %}
+                        <option value="{{ patient.patient_id }}">
+                            P{{ "%03d"|format(patient.patient_id) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="department_id">Department</label>
+                    <select id="department_id" name="department_id" required>
+                        <option value="">Select department</option>
+                        {% for department in departments %}
+                        <option value="{{ department.department_id }}">
+                            {{ department.department_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="visit_date">Visit Date</label>
+                    <input type="date" id="visit_date" name="visit_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="visit_type">Visit Type</label>
+                    <select id="visit_type" name="visit_type" required>
+                        <option value="">Select visit type</option>
+                        <option value="Check-up">Check-up</option>
+                        <option value="Consultation">Consultation</option>
+                        <option value="Follow-up">Follow-up</option>
+                    </select>
+                </div>
+
+                <div class="add-patient-actions">
+                    <button type="submit" class="add-patient-btn">
+                        Save Visit
+                    </button>
+
+                    <button type="button"
+                            id="cancelAddVisit"
+                            class="cancel-patient-btn">
+                        Cancel
+                    </button>
+                </div>
+
+            </form>
+        </section>
+        <!-- Edit Visit Form -->
+<section id="editVisitSection"
+         class="add-patient-form-section"
+         hidden>
+
+    <h2>Edit Visit Record</h2>
+
+    <form id="editVisitForm" method="POST" class="add-patient-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label for="editPatientId">Patient ID</label>
+            <select id="editPatientId" name="patient_id" required>
+                {% for patient in patients %}
+                <option value="{{ patient.patient_id }}">
+                    P{{ "%03d"|format(patient.patient_id) }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="editDepartmentId">Department</label>
+            <select id="editDepartmentId" name="department_id" required>
+                {% for department in departments %}
+                <option value="{{ department.department_id }}">
+                    {{ department.department_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="editVisitDate">Visit Date</label>
+            <input type="date" id="editVisitDate"
+                   name="visit_date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="editVisitType">Visit Type</label>
+            <select id="editVisitType" name="visit_type" required>
+                <option value="Check-up">Check-up</option>
+                <option value="Consultation">Consultation</option>
+                <option value="Follow-up">Follow-up</option>
+            </select>
+        </div>
+
+        <div class="add-patient-actions">
+            <button type="submit" class="add-patient-btn">
+                Save Changes
+            </button>
+
+            <button type="button"
+                    class="cancel-patient-btn"
+                    onclick="closeEditVisit()">
+                Cancel
+            </button>
+        </div>
+
+    </form>
+</section>
+
+        <section class="visits-table-section">
+            <h2 class="filter-heading">Search & Filter Records</h2>
+            <div class="visit-filters">
+
+                <div class="filter-group">
+                    <label for="startDate">From Date</label>
+                    <input type="date" id="startDate">
+                </div>
+
+                <div class="filter-group">
+                    <label for="endDate">To Date</label>
+                    <input type="date" id="endDate">
+                </div>
+
+                <div class="filter-group">
+                    <label for="departmentFilter">Department</label>
+                    <select id="departmentFilter">
+                        <option value="">All Departments</option>
+                        {% for department in departments %}
+                        <option value="{{ department.department_name }}">
+                            {{ department.department_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="button" id="resetFilters" class="cancel-patient-btn">
+                    Reset Filters
+                </button>
+
+            </div>
+
+            <label for="visitSearch">Search visit records</label>
+            <input
+                type="search"
+                id="visitSearch"
+                placeholder="Search by visit ID, patient, department or visit type..."
+                aria-label="Search visit records"
+            >
+
+            <p id="visitSearchMessage" aria-live="polite"></p>
+
+            <div class="table-responsive">
+                <table id="visitsTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Visit ID</th>
+                            <th scope="col">Patient ID</th>
+                            <th scope="col">Department</th>
+                            <th scope="col">Visit Date</th>
+                            <th scope="col">Visit Type</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+    {% for visit in visits %}
+    <tr
+        data-visit-id="{{ visit.visit_id }}"
+        data-patient-id="{{ visit.patient_id }}"
+        data-department-id="{{ visit.department_id }}"
+        data-date="{{ visit.visit_date.strftime('%Y-%m-%d') }}"
+        data-type="{{ visit.visit_type }}"
+    >
+        <td>V{{ "%03d"|format(visit.visit_id) }}</td>
+        <td>P{{ "%03d"|format(visit.patient_id) }}</td>
+        <td>{{ visit.department_name }}</td>
+        <td>{{ visit.visit_date.strftime('%d %b %Y') }}</td>
+        <td>{{ visit.visit_type }}</td>
+
+        <td>
+            <button type="button" class="edit-btn"
+                    onclick="editVisit(this)">Edit</button>
+
+            <form action="{{ url_for('delete_visit', visit_id=visit.visit_id) }}"
+                  method="POST"
+                  style="display:inline;"
+                  onsubmit="return confirm('Are you sure you want to delete this visit record?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="delete-btn">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="6">No visit records found.</td>
+    </tr>
+    {% endfor %}
+</tbody>
+                </table>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>MediTrack · Hospital Data Analysis System</p>
+        </div>
+    </footer>
+
+    <script>
+        const searchInput = document.getElementById("visitSearch");
+        const tableRows = document.querySelectorAll("#visitsTable tbody tr");
+        const searchMessage = document.getElementById("visitSearchMessage");
+
+        const startDate = document.getElementById("startDate");
+        const endDate = document.getElementById("endDate");
+        const departmentFilter = document.getElementById("departmentFilter");
+        const resetFilters = document.getElementById("resetFilters");
+
+        function filterVisits() {
+            const searchText = searchInput.value.toLowerCase().trim();
+            const start = startDate.value;
+            const end = endDate.value;
+            const department = departmentFilter.value.toLowerCase();
+
+            let visibleCount = 0;
+
+            tableRows.forEach(function (row) {
+                const cells = row.querySelectorAll("td");
+
+                if (cells.length < 5) return;
+
+                const rowText = row.textContent.toLowerCase();
+                const rowDepartment = cells[2].textContent.trim().toLowerCase();
+
+                const dateParts = cells[3].textContent.trim().split(" ");
+                const months = {
+                    Jan: "01", Feb: "02", Mar: "03",
+                    Apr: "04", May: "05", Jun: "06",
+                    Jul: "07", Aug: "08", Sep: "09",
+                    Oct: "10", Nov: "11", Dec: "12"
+                };
+
+                const rowDate = dateParts[2] + "-" +
+                                months[dateParts[1]] + "-" +
+                                dateParts[0];
+
+                const matchesSearch = rowText.includes(searchText);
+                const matchesDepartment =
+                    !department || rowDepartment === department;
+                const matchesStart = !start || rowDate >= start;
+                const matchesEnd = !end || rowDate <= end;
+
+                const matches = matchesSearch &&
+                                matchesDepartment &&
+                                matchesStart &&
+                                matchesEnd;
+
+                row.hidden = !matches;
+
+                if (matches) visibleCount++;
+            });
+
+            searchMessage.textContent = visibleCount + " matching visit(s).";
+        }
+
+        searchInput.addEventListener("input", filterVisits);
+        startDate.addEventListener("change", filterVisits);
+        endDate.addEventListener("change", filterVisits);
+        departmentFilter.addEventListener("change", filterVisits);
+
+        resetFilters.addEventListener("click", function () {
+            searchInput.value = "";
+            startDate.value = "";
+            endDate.value = "";
+            departmentFilter.value = "";
+
+            filterVisits();
+        });
+
+        const addVisitBtn = document.getElementById("addVisitBtn");
+        const visitFormSection = document.getElementById("addVisitFormSection");
+        const cancelVisitBtn = document.getElementById("cancelAddVisit");
+
+        addVisitBtn.addEventListener("click", function () {
+            visitFormSection.hidden = false;
+            addVisitBtn.hidden = true;
+            document.getElementById("patient_id").focus();
+        });
+
+        cancelVisitBtn.addEventListener("click", function () {
+            visitFormSection.hidden = true;
+            addVisitBtn.hidden = false;
+        });
+        function editVisit(button) {
+
+    const row = button.closest("tr");
+
+    const visitId = row.dataset.visitId;
+
+    document.getElementById("editPatientId").value =
+        row.dataset.patientId;
+
+    document.getElementById("editDepartmentId").value =
+        row.dataset.departmentId;
+
+    document.getElementById("editVisitDate").value =
+        row.dataset.date;
+
+    document.getElementById("editVisitType").value =
+        row.dataset.type;
+
+    document.getElementById("editVisitForm").action =
+        `/edit_visit/${visitId}`;
+
+    const editSection = document.getElementById("editVisitSection");
+
+    editSection.hidden = false;
+
+    editSection.scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+function closeEditVisit() {
+    document.getElementById("editVisitSection").hidden = true;
+}
+    // Check for possible duplicate visits
+const addVisitForm = document.getElementById("addVisitForm");
+
+addVisitForm.addEventListener("submit", function(event) {
+
+    const patientId = document.getElementById("patient_id").value;
+    const departmentId = document.getElementById("department_id").value;
+    const visitDate = document.getElementById("visit_date").value;
+    const visitType = document.getElementById("visit_type").value;
+
+    const existingVisits = document.querySelectorAll(
+        "#visitsTable tbody tr[data-visit-id]"
+    );
+
+    let duplicateFound = false;
+
+    existingVisits.forEach(function(row) {
+
+        if (
+            row.dataset.patientId === patientId &&
+            row.dataset.departmentId === departmentId &&
+            row.dataset.date === visitDate &&
+            row.dataset.type === visitType
+        ) {
+            duplicateFound = true;
+        }
+    });
+
+    if (duplicateFound) {
+        const proceed = confirm(
+            "A similar visit record already exists. " +
+            "Do you still want to add this visit?"
+        );
+
+        if (!proceed) {
+            event.preventDefault();
+        }
+    }
+});
+    </script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+

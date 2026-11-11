@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | MediTrack</title>
+
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<header class="site-header">
+    <div class="container navbar">
+
+        <a href="{{ url_for('home') }}" class="brand">
+            <span class="brand-icon">✚</span>
+            <span>MediTrack</span>
+        </a>
+
+        <a href="{{ url_for('logout') }}" class="login-btn">
+            Logout
+        </a>
+
+    </div>
+</header>
+
+<main class="container profile-page">
+
+    <section class="profile-card">
+
+        <div class="profile-avatar">👤</div>
+
+        <h1>My Profile</h1>
+
+        <p class="profile-subtitle">
+            Your MediTrack account details
+        </p>
+
+        <div class="profile-detail">
+            <span>Username</span>
+            <strong>{{ user.username }}</strong>
+        </div>
+
+        <div class="profile-detail">
+            <span>Email Address</span>
+            <strong>{{ user.email }}</strong>
+        </div>
+
+        <div class="profile-detail">
+            <span>Account Created</span>
+            <strong>
+                {{ user.created_at.strftime('%d %B %Y')
+                   if user.created_at else 'Not available' }}
+            </strong>
+        </div>
+
+        <a href="{{ url_for('home') }}"
+           class="btn btn-primary profile-back">
+            ← Back to Home
+        </a>
+
+    </section>
+
+</main>
+
+</body>
+</html>

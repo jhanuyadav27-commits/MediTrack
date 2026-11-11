@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Demographics | MediTrack</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <header class="site-header">
+    <div class="container navbar">
+        <div class="navbar-left">
+            <button class="menu-btn" id="menuBtn" type="button"
+                    aria-label="Open navigation menu" aria-expanded="false">
+                ☰
+            </button>
+
+
+        <a href="{{ url_for('home') }}" class="brand">
+            <span class="brand-icon">✚</span>
+            <span>MediTrack</span>
+        </a>
+        </div>
+
+    {% if not session.get('logged_in') %}
+    <a href="{{ url_for('login') }}" class="login-btn">
+        <span>👤</span>
+        <span>Login</span>
+    </a>
+    {% endif %}
+    </div>
+
+
+    </header>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-heading">
+        <h2>Navigation</h2>
+        <button class="close-btn" id="closeBtn" type="button"
+                aria-label="Close navigation menu">&times;</button>
+    </div>
+
+
+<nav class="sidebar-nav">
+    <a href="{{ url_for('home') }}" class="nav-link">⌂ Home</a>
+    <a href="{{ url_for('patients') }}" class="nav-link">♙ Patients</a>
+    <a href="{{ url_for('visits') }}" class="nav-link">▤ Visits</a>
+    <a href="{{ url_for('dashboard') }}" class="nav-link">▥ Dashboard</a>
+    <a href="{{ url_for('demographics') }}" class="nav-link active">◉ Demographics</a>
+    <a href="{{ url_for('reports') }}" class="nav-link">▧ Reports</a>
+</nav>
+
+<div class="sidebar-footer">Hospital Data Analysis System</div>
+
+
+</aside>
+
+
+    <main class="container demographics-page">
+
+        <section class="demographics-intro">
+            <p class="dashboard-label">PATIENT INSIGHTS</p>
+            <h1>Patient Demographics</h1>
+            <p>
+                Explore the age-group and gender distribution of
+                registered patients.
+            </p>
+        </section>
+
+        <section class="dashboard-summary"
+                 aria-label="Patient demographic statistics">
+
+            <article class="summary-card">
+                <span>Total Registered Patients</span>
+                <h2>{{ total_patients }}</h2>
+                <p>Patients in the database</p>
+            </article>
+
+            <article class="summary-card">
+                <span>Age Groups</span>
+                <h2>{{ age_distribution|length }}</h2>
+                <p>Distinct age categories</p>
+            </article>
+
+            <article class="summary-card">
+                <span>Gender Categories</span>
+                <h2>{{ gender_distribution|length }}</h2>
+                <p>Including unspecified entries when present</p>
+            </article>
+
+        </section>
+
+        <section class="demographics-grid">
+
+            <article class="demographics-card">
+                <h2>Age-Group Distribution</h2>
+                <p>Number of registered patients in each age group.</p>
+
+                {% if age_distribution %}
+                <div class="demographics-table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Age Group</th>
+                                <th scope="col">Patient Count</th>
+                                <th scope="col">Percentage</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in age_distribution %}
+                            <tr>
+                                <td>{{ item.age_band }}</td>
+                                <td>{{ item.patient_count }}</td>
+                                <td>
+                                    {% if total_patients > 0 %}
+                                        {{ "%.1f"|format(item.patient_count * 100 / total_patients) }}%
+                                    {% else %}
+                                        0.0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="empty-state">No age-group data available.</p>
+                {% endif %}
+            </article>
+
+            <article class="demographics-card">
+                <h2>Gender Distribution</h2>
+                <p>Number of registered patients in each gender category.</p>
+
+                {% if gender_distribution %}
+                <div class="demographics-table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Gender</th>
+                                <th scope="col">Patient Count</th>
+                                <th scope="col">Percentage</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in gender_distribution %}
+                            <tr>
+                                <td>{{ item.gender }}</td>
+                                <td>{{ item.patient_count }}</td>
+                                <td>
+                                    {% if total_patients > 0 %}
+                                        {{ "%.1f"|format(item.patient_count * 100 / total_patients) }}%
+                                    {% else %}
+                                        0.0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="empty-state">No gender data available.</p>
+                {% endif %}
+            </article>
+
+        </section>
+
+        <p class="data-note">
+            Note: This page uses synthetic patient data for educational and
+            hospital-operations analysis. Percentages are calculated from
+            the registered patient records.
+        </p>
+
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>MediTrack · Hospital Data Analysis System</p>
+        </div>
+    </footer>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+

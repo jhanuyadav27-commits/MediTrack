@@ -1,0 +1,8 @@
+Flask
+Flask-WTF
+mysql-connector-python
+pandas
+python-dotenv
+numpy
+matplotlib
+gunicorn
